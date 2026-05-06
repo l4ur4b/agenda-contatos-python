@@ -1,117 +1,90 @@
-def adicionar_contatos(nome, telefone,email,agenda):
-    contato={"Nome": nome, "Telefone": telefone, "E-mail": email, "Favorito":False}
-    agenda.append(contato)
-    print("Contato adicionado com sucesso!")
-    
+import json
+import os
 
-def ver_contatos(agenda):
-    if len(agenda) == 0:
-        print("\n Nenhum contato cadastrado.")
-        return
-    print("\n ---- Contatos ----")
-    for i, contato in enumerate(agenda, start=1):
-        favorito = "⭐" if contato["Favorito"] else " "
-        print(f"{i}. [{favorito}] {contato['Nome']} | {contato['Telefone']} | {contato['E-mail']}")
+class Contato:
+    def __init__(self, nome, telefone, email=""):
+        self.nome = nome
+        self.telefone = telefone
+        self.email = email
+
+    def to_dict(self):
+        # converte o objeto para dicionário (para salvar em JSON)
+        return {
+            "nome": self.nome,
+            "telefone": self.telefone,
+            "email": self.email
+        }
+
+    def __str__(self):
+        return f"{self.nome} | {self.telefone} | {self.email}"
 
 
-def atualizar_contato(agenda, indice_agenda, novo_nome=None, novo_telefone=None, novo_email=None):
-    indice = int(indice_agenda) - 1
+class Agenda:
+    def __init__(self, arquivo="contatos.json"):
+        self.arquivo = arquivo
+        self.contatos = []
+        self.carregar()  # carrega automaticamente ao iniciar
 
-    if 0 <= indice < len(agenda):
-        if novo_nome:
-            agenda[indice]["Nome"] = novo_nome
-        if novo_telefone:
-            agenda[indice]["Telefone"] = novo_telefone
-        if novo_email:
-            agenda[indice]["E-mail"] = novo_email
+    def carregar(self):
+        # lê o arquivo JSON se ele existir
+        if os.path.exists(self.arquivo):
+            with open(self.arquivo, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                self.contatos = [
+                    Contato(c["nome"], c["telefone"], c["email"])
+                    for c in dados
+                ]
 
-        print("Contato atualizado com sucesso!")
-    else:
-        print("Índice de contato inválido.")
-        
-def deletar_contato(agenda, indice_agenda):
-    indice = int(indice_agenda) - 1
+    def salvar(self):
+        # persiste todos os contatos no arquivo JSON
+        with open(self.arquivo, "w", encoding="utf-8") as f:
+            json.dump(
+                [c.to_dict() for c in self.contatos],
+                f, indent=2, ensure_ascii=False
+            )
 
-    if 0 <= indice < len(agenda):
-        contato_removido = agenda.pop(indice)
-        print(f"Contato {contato_removido['Nome']} removido com sucesso!")
-    else:
-        print("Índice inválido.")    
+    def adicionar(self, nome, telefone, email=""):
+        contato = Contato(nome, telefone, email)
+        self.contatos.append(contato)
+        self.salvar()  # salva sempre que adicionar
+        print(f"Contato '{nome}' adicionado!")
 
-def favoritar_contato(agenda, indice_agenda):
-    indice = int(indice_agenda) - 1
+    def buscar(self, termo):
+        # busca parcial — não precisa digitar o nome completo
+        termo = termo.lower()
+        resultados = [
+            c for c in self.contatos
+            if termo in c.nome.lower() or termo in c.email.lower()
+        ]
+        return resultados
 
-    if 0 <= indice < len(agenda):
-        agenda[indice]["Favorito"] = not agenda[indice]["Favorito"]
-
-        if agenda[indice]["Favorito"]:
-            print(f"Contato {agenda[indice]['Nome']} favoritado ⭐")
+    def remover(self, nome):
+        antes = len(self.contatos)
+        self.contatos = [c for c in self.contatos if c.nome.lower() != nome.lower()]
+        if len(self.contatos) < antes:
+            self.salvar()
+            print(f"Contato '{nome}' removido.")
         else:
-            print(f"Contato {agenda[indice]['Nome']} desfavoritado.")
-    else:
-        print("Índice inválido.")
+            print("Contato não encontrado.")
 
-def ver_favoritos(agenda):
-    favoritos = [contato for contato in agenda if contato["Favorito"]]
+    def listar(self):
+        if not self.contatos:
+            print("Agenda vazia.")
+            return
+        for i, c in enumerate(self.contatos, 1):
+            print(f"{i}. {c}")
 
-    if len(favoritos) == 0:
-        print("\nNenhum contato favoritado.")
-        return
 
-    print("\n--- Contatos Favoritos ---")
-    for i, contato in enumerate(favoritos, start=1):
-        print(f"{i}. ⭐ {contato['Nome']} | {contato['Telefone']} | {contato['E-mail']}")
-        
-agenda_contatos=[]
-while True:
-    print("\n Agenda de contatos")
-    print("1- Adicionar Contato")
-    print("2- Ver Contatos")
-    print("3- Atualizar Contato")
-    print("4- Deletar Contato")
-    print("5- Favoritar Contato")
-    print("6- Ver Favoritos")
-    print("7- Sair")
-    
-    escolha_user= input("Digite um número para acessar a agenda:")
-   
-    if escolha_user =="1":
-       nome = input("Digite o nome: ")
-       telefone = input("Digite o telefone: ")
-       email = input("Digite o e-mail: ")
-       adicionar_contatos(nome, telefone, email, agenda_contatos)
-    
-    elif escolha_user == "2":
-        ver_contatos(agenda_contatos) 
-        
-    elif escolha_user == "3":
-        ver_contatos(agenda_contatos)
-        indice_agenda = input("Digite o índice do contato que deseja atualizar: ")
+# --- uso básico para testar ---
+if __name__ == "__main__":
+    agenda = Agenda()
 
-        novo_nome = input("Novo nome (enter para manter): ").strip()
-        novo_telefone = input("Novo telefone (enter para manter): ").strip()
-        novo_email = input("Novo e-mail (enter para manter): ").strip()
+    agenda.adicionar("Laura", "11 91234-5678", "laura@email.com")
+    agenda.adicionar("Carlos", "11 99876-5432")
 
-        atualizar_contato(
-            agenda_contatos,
-            indice_agenda,
-            novo_nome if novo_nome else None,
-            novo_telefone if novo_telefone else None,
-            novo_email if novo_email else None
-        )
-    elif escolha_user == "4":
-        ver_contatos(agenda_contatos)
-        indice_agenda = input("Digite o índice do contato que deseja deletar: ")
-        deletar_contato(agenda_contatos, indice_agenda)
-        
-    elif escolha_user == "5":
-        ver_contatos(agenda_contatos)
-        indice_agenda = input("Digite o índice do contato que deseja favoritar/desfavoritar: ")
-        favoritar_contato(agenda_contatos, indice_agenda)
-    
-    elif escolha_user == "6":
-        ver_favoritos(agenda_contatos)
+    print("\n--- todos os contatos ---")
+    agenda.listar()
 
-    elif escolha_user == "7":
-        break
-print("Fim do programa")
+    print("\n--- busca por 'lau' ---")
+    for c in agenda.buscar("lau"):
+        print(c)
